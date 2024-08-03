@@ -1,8 +1,7 @@
 const { getDB, DATABASE } = require("../config/db");
-const { ObjectId } = require("mongodb");
 const { isJobObject } = require("../lib/utils");
 
-const collectionName = DATABASE.JOB_PORTAL.COLLECTIONS.JOBS ;
+const collectionName = DATABASE.JOB_PORTAL.COLLECTIONS.JOBS;
 
 const saveJob = async (job) => {
   try {

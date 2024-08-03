@@ -18,7 +18,7 @@ const isJobObject = (job) => {
       name: "string",
       link: "string",
       location: "string",
-      salary: "string"
+      salary: "string",
     },
     shift: { type: "array", items: "string" },
     applyLink: "string",
@@ -26,17 +26,28 @@ const isJobObject = (job) => {
     experienceLevel: "string",
     datePosted: "string", // Dates are generally represented as strings in JSON
     createdAt: "string", // Dates are generally represented as strings in JSON
-    updatedAt: "string" // Dates are generally represented as strings in JSON
+    updatedAt: "string", // Dates are generally represented as strings in JSON
   };
   return matchesStructure(job, jobStructure);
 };
 
+const isUserObject = (user) => {
+  const userStructure = {
+    id: "string",
+    name: "string",
+    email: "string",
+    password: "string",
+    jobVisited: { type: "array", items: "string" },
+    savedJobs: { type: "array", items: "string" },
+  };
+  return matchesStructure(user, userStructure);
+};
 
-function matchesStructure(obj, structure, path = '') {
+function matchesStructure(obj, structure, path = "") {
   const errors = [];
 
   function checkType(value, expectedType) {
-    if (expectedType === 'array') {
+    if (expectedType === "array") {
       return Array.isArray(value);
     }
     return typeof value === expectedType;
@@ -58,15 +69,21 @@ function matchesStructure(obj, structure, path = '') {
 
       const objValue = obj[key];
 
-      if (typeof expectedType === 'object' && !Array.isArray(expectedType)) {
-        if (expectedType === 'array') {
+      if (typeof expectedType === "object" && !Array.isArray(expectedType)) {
+        if (expectedType === "array") {
           if (!Array.isArray(objValue)) {
-            errors.push(`Type mismatch at ${newPath}: expected array, got ${typeof objValue}`);
+            errors.push(
+              `Type mismatch at ${newPath}: expected array, got ${typeof objValue}`
+            );
           } else {
             for (let i = 0; i < objValue.length; i++) {
               const itemPath = `${newPath}[${i}]`;
               if (!checkType(objValue[i], value.items)) {
-                errors.push(`Type mismatch at ${itemPath}: expected ${value.items}, got ${typeof objValue[i]}`);
+                errors.push(
+                  `Type mismatch at ${itemPath}: expected ${
+                    value.items
+                  }, got ${typeof objValue[i]}`
+                );
               }
             }
           }
@@ -78,7 +95,9 @@ function matchesStructure(obj, structure, path = '') {
         }
       } else {
         if (!checkType(objValue, expectedType)) {
-          errors.push(`Type mismatch at ${newPath}: expected ${expectedType}, got ${typeof objValue}`);
+          errors.push(
+            `Type mismatch at ${newPath}: expected ${expectedType}, got ${typeof objValue}`
+          );
         }
       }
     }
@@ -89,4 +108,4 @@ function matchesStructure(obj, structure, path = '') {
   return validate(obj, structure, path);
 }
 
-module.exports = { delay, isJobObject, saveToFile };
+module.exports = { delay, isJobObject, saveToFile, isUserObject };

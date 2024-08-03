@@ -6,9 +6,10 @@ let db;
 
 const DATABASE = {
   JOB_PORTAL:{
-    NAME:'jobportal',
+    NAME:'jobsportal',
     COLLECTIONS:{
-      JOBS:'jobs'
+      JOBS:'Jobs',
+      Users:'users'
     }
   }
 }

@@ -11,7 +11,7 @@ const { getDB, connectDB, DATABASE } = require("./config/db");
 const app = express();
 
 // Middleware setup
-// app.use(helmet());
+app.use(helmet());
 app.use(
   cors({
     origin: ["http://127.0.0.1:3000", "http://localhost:3000"],
@@ -36,15 +36,20 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Example route
-app.get("/", async (req, res) => { 
-  const jobs = await getDB().collection('jobs').find().toArray();
-  const indeedJobs = await jobs.filter((job)=>job.source=="Indeed");
-  const linkedInJobs = await jobs.filter((job)=>job.source=="LinkedIn");
+app.get("/", async (req, res) => {
+  const jobs = await getDB()
+    .collection(DATABASE.JOB_PORTAL.COLLECTIONS.JOBS)
+    .find()
+    .toArray();
+  const indeedJobs = await jobs.filter((job) => job.source == "indeed.com");
+  const linkedInJobs = await jobs.filter((job) => job.source == "linkedin.com");
+  const naukriJobs = await jobs.filter((job) => job.source == "naukri.com");
   res.render("index", {
     title: "My Job Portal",
     jobsLength: jobs.length,
     indeedJobs,
     linkedInJobs,
+    naukriJobs,
   });
 });
 
@@ -66,6 +71,7 @@ const logger = winston.createLogger({
 
 // Routes setup
 app.use("/api/v1/jobs", require("./routes/jobs"));
+app.use("/api/v1/users", require("./routes/user"));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -75,13 +81,14 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 8000;
 
-async function runServer(){
-
+async function runServer() {
   try {
-    await connectDB(DATABASE.JOB_PORTAL.NAME)
-    app.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}/`));
+    await connectDB(DATABASE.JOB_PORTAL.NAME);
+    app.listen(PORT, () =>
+      console.log(`Server running on port http://localhost:${PORT}/`)
+    );
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
-} 
-runServer()
+}
+runServer();

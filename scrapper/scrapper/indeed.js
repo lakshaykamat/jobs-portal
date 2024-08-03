@@ -1,9 +1,10 @@
 const puppeteer = require("puppeteer");
-const { delay, saveToDatabase } = require("../lib/utils");
+const { delay, generateSlug } = require("../lib/utils");
+const { getDB } = require("../config/mongo");
 
 // Function to navigate to the jobs page
 const navigateToJobsPage = async (page, jobQuery) => {
-  const jobsURL = `https://in.indeed.com/jobs?q=${jobQuery.role}&l=${jobQuery.city}`;
+  const jobsURL = `https://in.indeed.com/jobs?q=${jobQuery.role}&l=${jobQuery.location}`;
   await page.goto(jobsURL, { waitUntil: "networkidle2" });
   console.log(`Navigated to jobs page: ${jobsURL}`);
 };
@@ -87,19 +88,20 @@ const extractJobDetails = async (page) => {
       }
 
       return {
-        source: "Indeed",
+        source: "indeed.com",
         applyLink: cleanJobUrl(document.URL),
         title: jobTitle,
         company: {
           name: companyName,
-          imageLink: "https://in.indeed.com/cmp/-/s/assets/9b2af60acf61dd34/placeholder-logo-128.png",
           link: cleanIndeedCompanyUrl(companyLink),
           location: location,
         },
         jobType: details.jobTypes,
         description: description,
         salary: salary,
-        shift: details.shifts
+        shift: details.shifts,
+        createdAt:Date.now(),
+        updatedAt:Date.now(),
       };
     });
   } catch (error) {
@@ -111,23 +113,25 @@ const extractJobDetails = async (page) => {
 // Main function to scrape jobs from Indeed
 const indeedScraper = async (jobQuery) => {
   const browser = await puppeteer.launch({
-    headless: false, // Set to false to see the browser window
+    headless: true, // Set to false to see the browser window
     defaultViewport: null, // Setting to null disables the default viewport setting
     args: ["--start-maximized"], // Opens the browser in full screen
   });
 
   const page = await browser.newPage();
+  // await page.setUserAgent(userAgent.random().toString())
+  await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36")
   await page.setViewport({ width: 1920, height: 1080 });
 
   try {
-    console.log(`Starting Indeed scraper for role: ${jobQuery.role}, location: ${jobQuery.city}`);
+    console.log(`Starting Indeed scraper for role: ${jobQuery.role}, location: ${jobQuery.location}`);
     await navigateToJobsPage(page, jobQuery);
+    await page.screenshot({ path: 'example.png' });
     await delay(5000);
 
     const jobLinks = await extractJobLinks(page);
     console.log(`Found ${jobLinks.length} job links.`);
 
-    const allJobData = [];
     for (const jobLink of jobLinks) {
       console.log(`Navigating to job link: ${jobLink}`);
       await page.goto(jobLink, { waitUntil: "networkidle2" });
@@ -136,13 +140,12 @@ const indeedScraper = async (jobQuery) => {
       const jobData = await extractJobDetails(page);
       if (jobData) {
         console.log(`Extracted job details for: ${jobData.applyLink}`);
-        await getDB().collection("Jobs").insertOne(jobData);
-        allJobData.push(jobData);
+        await getDB().collection("Jobs").insertOne({...jobData,slug:await generateSlug(jobData.title)});
       }
     }
 
     console.log("All job data extracted successfully.");
-    return allJobData;
+    return true
   } catch (error) {
     console.error("Error:", error);
   } finally {

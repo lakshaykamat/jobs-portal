@@ -1,6 +1,5 @@
 const puppeteer = require("puppeteer");
-const { delay, saveToDatabase } = require("../lib/utils");
-const cron = require("node-cron");
+const { delay, generateSlug } = require("../lib/utils");
 const { getDB } = require("../config/mongo");
 
 const navigateToJobsPage = async (page, jobQuery) => {
@@ -40,7 +39,7 @@ const extractJobDetails = async (page) => {
     console.log("Extracting job details...");
     await page.waitForSelector(".top-card-layout__entity-info");
     await page.waitForSelector(".top-card-layout__second-subline");
-    await page.waitForSelector(".decorated-job-posting__details");
+    await page.waitForSelector(".show-more-less-html__markup");
     await page.waitForSelector(".top-card-layout__title");
     await page.waitForSelector(".artdeco-entity-image");
     await page.waitForSelector(".posted-time-ago__text");
@@ -92,24 +91,41 @@ const extractJobDetails = async (page) => {
       const companyLink = document.querySelector(".topcard__org-name-link")?.href?.trim() || "";
       const location = spans[1]?.textContent.trim() || "";
 
-      const description = document.querySelector(".decorated-job-posting__details")?.innerHTML.trim() || "";
+      const description = document.querySelector(".show-more-less-html__markup")?.innerHTML.trim() || "";
 
-      function cleanLinkedInJobUrl(url) {
-        const urlObj = new URL(url);
-        const pathSegments = urlObj.pathname.split("/");
-        const jobId = pathSegments[pathSegments.length - 1];
-        return `https://www.linkedin.com/jobs/view/${jobId}`;
-      }
+      const cleanURL = {
+        jobURL : (url)=>{
+          try {
+            const urlObj = new URL(url);
+            const pathSegments = urlObj.pathname.split("/");
+            const jobId = pathSegments[pathSegments.length - 1];
+            return `/jobs/view/${jobId}`;
+          } catch (error) {
+            console.error("Invalid URL:", error);
+            return null;
+          }
+
+        },
+        companyURL :(url)=>{
+          try {
+            const urlObj = new URL(url);
+            return `${urlObj.origin}${urlObj.pathname}`;
+          } catch (error) {
+            console.error("Invalid URL:", error);
+            return null;
+          }
+        }
+      }     
 
       return {
-        source: "LinkedIn",
-        applyLink: cleanLinkedInJobUrl(document.URL),
+        source: "linkedin.com",
+        applyLink: cleanURL.jobURL(document.URL),
         title: jobTitle,
         company: {
           name: companyName,
           imageLink: imageElement,
-          link: companyLink,
-          locxation: location,
+          link: cleanURL.companyURL(companyLink),
+          location: location,
           industries: criteriaData["industries"],
           function: criteriaData["jobFunction"],
         },
@@ -117,6 +133,8 @@ const extractJobDetails = async (page) => {
         jobType: [criteriaData["jobType"]],
         experienceLevel: criteriaData["experienceLevel"],
         description: description,
+        createdAt:Date.now(),
+        updatedAt:Date.now(),
       };
     });
 
@@ -148,7 +166,6 @@ const linkedInScrapper = async (jobQuery) => {
       return;
     }
 
-    const allJobData = [];
 
     for (const jobLink of jobLinks) {
       console.log(`Navigating to job link: ${jobLink}`);
@@ -159,15 +176,14 @@ const linkedInScrapper = async (jobQuery) => {
       if (jobData) {
         console.log(`Extracted job data: ${jobData.applyLink}`);
         // Uncomment the line below to save data to the database
-        await getDB().collection("Jobs").insertOne(jobData);
-        allJobData.push(jobData);
+        await getDB().collection("Jobs").insertOne({...jobData,slug:await generateSlug(jobData.title)});
       } else {
         console.log("No job data extracted from this link.");
       }
     }
 
     console.log("All job data extracted successfully.");
-    return allJobData;
+    return true
   } catch (error) {
     console.error("Error:", error);
   } finally {

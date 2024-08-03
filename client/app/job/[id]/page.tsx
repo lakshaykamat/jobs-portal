@@ -9,7 +9,7 @@ const fetcher = (url: string) => axiosInstance.get(url).then((res) => res.data);
 
 const JobPage = ({ params }: { params: { id: string } }) => {
 
-  const { data: job, isLoading,error } = useSWR<JobPost>(params.id ? `/api/v1/jobs/?id=${params.id}` : null, fetcher);
+  const { data: job, isLoading,error } = useSWR<JobPost>(params.id ? `/api/v1/jobs/?slug=${params.id}` : null, fetcher);
 
   if (error) return <div className="text-red-500">Failed to load job data</div>;
   if (isLoading) return <div>Loading...</div>;

@@ -9,4 +9,32 @@ const axiosInstance: AxiosInstance = axios.create({
   // You can add other default configurations here
 });
 
+// Request interceptor to add the Bearer token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // Retrieve the token from localStorage or any other secure storage
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle errors globally
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle errors globally here
+    return Promise.reject(error);
+  }
+);
+
 export default axiosInstance;

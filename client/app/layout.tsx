@@ -5,6 +5,7 @@ import NavBar from "./NavBar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserProvider } from "./context/UserContext";
 import { Toaster } from "@/components/ui/toaster";
+import Footer from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <UserProvider>
           <ThemeProvider
             attribute="class"
@@ -30,6 +31,7 @@ export default function RootLayout({
           >
             <NavBar />
             <main className="max-w-5xl mx-auto">{children}</main>
+            <Footer />
             <Toaster />
           </ThemeProvider>
         </UserProvider>

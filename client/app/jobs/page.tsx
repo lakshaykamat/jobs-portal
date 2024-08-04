@@ -22,13 +22,18 @@ interface JobData {
 const JobsPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [jobSearch, setJobSearch] = useState<JobSearch>({ role: "", location: "" });
+  const [jobSearch, setJobSearch] = useState<JobSearch>({
+    role: "",
+    location: "",
+  });
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchJobs = async (role: string, location: string) => {
     try {
-      const response = await axiosInstance.get<JobData>(`/api/v1/jobs?title=${role}&location=${location}`);
+      const response = await axiosInstance.get<JobData>(
+        `/api/v1/jobs?title=${role}&location=${location}`
+      );
       setJobData(response.data);
       setLoading(false);
     } catch (error) {
@@ -53,7 +58,8 @@ const JobsPage: React.FC = () => {
   const searchJobs = () => {
     let query = "/jobs?";
     if (jobSearch.role) query += `role=${encodeURIComponent(jobSearch.role)}&`;
-    if (jobSearch.location) query += `location=${encodeURIComponent(jobSearch.location)}`;
+    if (jobSearch.location)
+      query += `location=${encodeURIComponent(jobSearch.location)}`;
     router.replace(query);
   };
 

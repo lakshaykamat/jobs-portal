@@ -5,14 +5,14 @@ const uri = process.env.MONGO_URI || "mongodb://localhost:27017/";
 let db;
 
 const DATABASE = {
-  JOB_PORTAL:{
-    NAME:'jobsportal',
-    COLLECTIONS:{
-      JOBS:'Jobs',
-      Users:'users'
-    }
-  }
-}
+  JOB_PORTAL: {
+    NAME: "jobsportal",
+    COLLECTIONS: {
+      JOBS: "Jobs",
+      Users: "users",
+    },
+  },
+};
 
 const connectDB = async (databaseName) => {
   try {
@@ -32,4 +32,8 @@ const getDB = () => {
   }
   return db;
 };
-module.exports = { connectDB, getDB,DATABASE };
+module.exports = {
+  connectDB,
+  getDB,
+  DATABASE,
+};

@@ -17,7 +17,7 @@ const createUser = async (user) => {
   try {
     // Validate user data
     const { error } = UserSchema.validate(user);
-    console.log(error);
+
     if (error) {
       throw new Error(error.details[0]?.message);
     }
@@ -47,6 +47,7 @@ const createUser = async (user) => {
       id: uniqueId,
       ...user,
       password: hashedPassword,
+      savedJobs: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };

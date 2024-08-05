@@ -1,18 +1,27 @@
 const { getDB, DATABASE } = require("../config/db");
 const { createUser } = require("../models/user");
 const jwt = require("jsonwebtoken");
+const otpGenerator = require("otp-generator");
 const bcrypt = require("bcrypt");
+const sendEmail = require("../config/sendEMail");
+const { getRegistrationEmailHtml } = require("../lib/utils");
 
 const getUser = async (req, res) => {
   try {
-    const db = await getDB();
-    const usersCollection = db.collection(
-      DATABASE.JOB_PORTAL.COLLECTIONS.Users
-    );
-    const jobsCollection = db.collection(DATABASE.JOB_PORTAL.COLLECTIONS.JOBS);
-
     const userId = req.userId;
-    const user = await usersCollection.findOne({ id: userId });
+    const user = await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .findOne(
+        { id: userId },
+        {
+          projection: {
+            _id: false,
+            password: false,
+            otp: false,
+            otpExpires: false,
+          },
+        }
+      );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -24,10 +33,9 @@ const getUser = async (req, res) => {
 
     const savedJobs = await Promise.all(
       user.savedJobs.map(async (slug) => {
-        return await jobsCollection.findOne(
-          { slug },
-          { projection: { _id: 0 } }
-        );
+        return await getDB()
+          .collection(DATABASE.JOB_PORTAL.COLLECTIONS.JOBS)
+          .findOne({ slug }, { projection: { _id: 0 } });
       })
     );
 
@@ -37,35 +45,117 @@ const getUser = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 const registerUser = async (req, res) => {
   try {
     // Create the user
-    await createUser(req.body);
+    const { insertedId, acknowledged } = await createUser(req.body);
 
-    // Respond with the created user and the token
-    res.status(201).json({ message: "User created Successfully" });
+    const otp = otpGenerator.generate(6, {
+      upperCase: false,
+      specialChars: false,
+    });
+    const otpExpires = Date.now() + 3600000; // 1 hour from now
+
+    await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .updateOne({ _id: insertedId }, { $set: { otp, otpExpires } });
+
+    //Send Email
+    await sendEmail(
+      req.body.email,
+      "Welcome to JobVault!",
+      getRegistrationEmailHtml(req.body.name, otp)
+    );
+
+    res.status(201).json({ message: "OTP Sent to a registerd email" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: true, message: error.message });
   }
 };
 
+const verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const user = await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .findOne({ email });
+    if (!user)
+      return res.status(400).json({ error: true, message: "Invalid email" });
+
+    // Check if OTP is valid and not expired
+    console.log(user.otp !== otp);
+    if (user.otp !== otp || user.otpExpires < Date.now()) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Invalid or expired OTP" });
+    }
+
+    // OTP is valid, proceed with the registration process
+    await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .updateOne(
+        { email },
+        { $set: { otp: undefined, otpExpires: undefined } }
+      );
+
+    res.status(201).json({ message: "OTP verified successfully" });
+  } catch (error) {
+    res.status(500).json({ error: true, message: "Internal Server error" });
+  }
+};
+
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .findOne({ email });
+    if (!user)
+      return res.status(400).json({ error: true, message: "Invalid email" });
+
+    // Generate a new OTP
+    const otp = otpGenerator.generate(6, {
+      upperCase: false,
+      specialChars: false,
+    });
+    const otpExpires = Date.now() + 3600000; // 1 hour from now
+
+    // OTP is valid, proceed with the registration process
+    await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .updateOne({ email }, { $set: { otp, otpExpires } });
+
+    // Send the new OTP email
+    await sendEmail(
+      req.body.email,
+      "Your New OTP for Registration",
+      getRegistrationEmailHtml(user.name, otp)
+    );
+    res.status(201).json({ message: `OTP sent to ${email}` });
+  } catch (error) {
+    res.status(500).send({ error: true, message: "Internal Server error" });
+  }
+};
 const loginUser = async (req, res) => {
   try {
-    const users = getDB().collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users);
-
     const { email, password } = req.body;
-    const user = await users.findOne({ email });
+    const user = await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .findOne({ email }, { projection: { _id: false } });
 
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign({ userId: user.id }, process.env.AUTH_SECRET_KEY, {
         expiresIn: "1h",
       });
-      res.status(200).json({ user, token });
+      res.status(200).json({ ...user, token });
     } else {
-      res.status(401).json({ message: "Invalid email or password" });
+      res
+        .status(401)
+        .json({ error: true, message: "Invalid email or password" });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: true, message: error.message });
   }
 };
 
@@ -101,9 +191,31 @@ const saveJob = async (req, res) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
+const contactUs = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if ((!name, !email, !message)) {
+      res.status(500).json({ message: "Feilds are required" });
+      return;
+    }
+    await getDB().collection("contacts").insertOne({
+      name: name.trim(),
+      email: email.trim(),
+      message: message.trim(),
+    });
+    sendEmail(email, "Your query was submitted", message);
+    res.status(200).json({ message: "Message sent" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
 module.exports = {
   getUser,
   registerUser,
   loginUser,
+  verifyOTP,
   saveJob,
+  resendOTP,
+  contactUs,
 };

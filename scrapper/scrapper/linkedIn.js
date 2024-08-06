@@ -71,42 +71,51 @@ const extractJobDetails = async (page) => {
         "Seniority level": "experienceLevel",
         "Employment type": "jobType",
         "Job function": "jobFunction",
-        "Industries": "industries",
+        Industries: "industries",
       };
 
       criteriaItems.forEach((item) => {
-        const header = item.querySelector(".description__job-criteria-subheader")?.textContent.trim();
-        const value = item.querySelector(".description__job-criteria-text")?.textContent.trim();
+        const header = item
+          .querySelector(".description__job-criteria-subheader")
+          ?.textContent.trim();
+        const value = item
+          .querySelector(".description__job-criteria-text")
+          ?.textContent.trim();
         if (header && value && headerToKeyMap[header]) {
           criteriaData[headerToKeyMap[header]] = value;
         }
       });
 
-      const element = document.querySelector("h4.top-card-layout__second-subline");
+      const element = document.querySelector(
+        "h4.top-card-layout__second-subline"
+      );
       if (!element) return null;
 
       const spans = element.querySelectorAll("div > span");
       const companyName = spans[0]?.textContent.trim() || "";
-      
-      const companyLink = document.querySelector(".topcard__org-name-link")?.href?.trim() || "";
+
+      const companyLink =
+        document.querySelector(".topcard__org-name-link")?.href?.trim() || "";
       const location = spans[1]?.textContent.trim() || "";
 
-      const description = document.querySelector(".show-more-less-html__markup")?.innerHTML.trim() || "";
+      const description =
+        document
+          .querySelector(".show-more-less-html__markup")
+          ?.innerHTML.trim() || "";
 
       const cleanURL = {
-        jobURL : (url)=>{
+        jobURL: (url) => {
           try {
             const urlObj = new URL(url);
             const pathSegments = urlObj.pathname.split("/");
             const jobId = pathSegments[pathSegments.length - 1];
-            return `/jobs/view/${jobId}`;
+            return `https://www.linkedin.com/jobs/view/${jobId}`;
           } catch (error) {
             console.error("Invalid URL:", error);
             return null;
           }
-
         },
-        companyURL :(url)=>{
+        companyURL: (url) => {
           try {
             const urlObj = new URL(url);
             return `${urlObj.origin}${urlObj.pathname}`;
@@ -114,8 +123,8 @@ const extractJobDetails = async (page) => {
             console.error("Invalid URL:", error);
             return null;
           }
-        }
-      }     
+        },
+      };
 
       return {
         source: "linkedin.com",
@@ -133,8 +142,8 @@ const extractJobDetails = async (page) => {
         jobType: [criteriaData["jobType"]],
         experienceLevel: criteriaData["experienceLevel"],
         description: description,
-        createdAt:Date.now(),
-        updatedAt:Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
     });
 
@@ -166,7 +175,6 @@ const linkedInScrapper = async (jobQuery) => {
       return;
     }
 
-
     for (const jobLink of jobLinks) {
       console.log(`Navigating to job link: ${jobLink}`);
       await page.goto(jobLink, { waitUntil: "networkidle2" });
@@ -176,14 +184,16 @@ const linkedInScrapper = async (jobQuery) => {
       if (jobData) {
         console.log(`Extracted job data: ${jobData.applyLink}`);
         // Uncomment the line below to save data to the database
-        await getDB().collection("Jobs").insertOne({...jobData,slug:await generateSlug(jobData.title)});
+        await getDB()
+          .collection("Jobs")
+          .insertOne({ ...jobData, slug: await generateSlug(jobData.title) });
       } else {
         console.log("No job data extracted from this link.");
       }
     }
 
     console.log("All job data extracted successfully.");
-    return true
+    return true;
   } catch (error) {
     console.error("Error:", error);
   } finally {

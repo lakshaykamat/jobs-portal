@@ -12,8 +12,12 @@ const navigateToJobsPage = async (page, jobQuery) => {
 // Function to extract job links from the entire document
 const extractJobLinks = async (page) => {
   return await page.evaluate(() => {
-    const links = Array.from(document.querySelectorAll("a")).map(link => link.href);
-    return links.filter(href => href.startsWith("https://in.indeed.com/rc/clk"));
+    const links = Array.from(document.querySelectorAll("a")).map(
+      (link) => link.href
+    );
+    return links.filter((href) =>
+      href.startsWith("https://in.indeed.com/rc/clk")
+    );
   });
 };
 
@@ -23,35 +27,57 @@ const extractJobDetails = async (page) => {
     await page.waitForSelector(".jobsearch-JobInfoHeader-title");
     await page.waitForSelector(".css-1saizt3");
     await page.waitForSelector(".css-waniwe");
-    await page.waitForSelector('.js-match-insights-provider-h884c4');
+    await page.waitForSelector(".js-match-insights-provider-h884c4");
     await page.waitForSelector("#jobDescriptionText");
 
     return await page.evaluate(() => {
-      const jobTitle = document.querySelector(".jobsearch-JobInfoHeader-title span")?.textContent.trim() || "";
-      const companyName = document.querySelector(".css-1saizt3 a")?.textContent.trim() || "";
-      const companyLink = document.querySelector(".css-1saizt3 a")?.href.trim() || "";
-      const location = document.querySelector(".css-waniwe div")?.textContent.trim() || "";
-      const salary = document.querySelector("#salaryInfoAndJobType span")?.textContent.trim() || "Not Disclosed";
-      const description = document.querySelector("#jobDescriptionText")?.innerHTML || "";
+      const jobTitle =
+        document
+          .querySelector(".jobsearch-JobInfoHeader-title span")
+          ?.textContent.trim() || "";
+      const companyName =
+        document.querySelector(".css-1saizt3 a")?.textContent.trim() || "";
+      const companyLink =
+        document.querySelector(".css-1saizt3 a")?.href.trim() || "";
+      const location =
+        document.querySelector(".css-waniwe div")?.textContent.trim() || "";
+      const salary =
+        document
+          .querySelector("#salaryInfoAndJobType span")
+          ?.textContent.trim() || "Not Disclosed";
+      const description =
+        document.querySelector("#jobDescriptionText")?.innerHTML || "";
 
       const details = {
         jobTypes: [],
-        shifts: []
+        shifts: [],
       };
 
       // Extract job types
-      const jobTypeItems = document.querySelectorAll('div[aria-label="Job type"] ul.js-match-insights-provider-h884c4 li[data-testid="list-item"]');
-      jobTypeItems.forEach(item => {
-        const jobType = item.querySelector('div[data-testid$="-tile"] .js-match-insights-provider-tvvxwd.ecydgvn1')?.textContent.trim();
+      const jobTypeItems = document.querySelectorAll(
+        'div[aria-label="Job type"] ul.js-match-insights-provider-h884c4 li[data-testid="list-item"]'
+      );
+      jobTypeItems.forEach((item) => {
+        const jobType = item
+          .querySelector(
+            'div[data-testid$="-tile"] .js-match-insights-provider-tvvxwd.ecydgvn1'
+          )
+          ?.textContent.trim();
         if (jobType) {
           details.jobTypes.push(jobType);
         }
       });
 
       // Extract shift and schedule
-      const shiftItems = document.querySelectorAll('div[aria-label="Shift and schedule"] ul.js-match-insights-provider-h884c4 li[data-testid="list-item"]');
-      shiftItems.forEach(item => {
-        const shift = item.querySelector('div[data-testid$="-tile"] .js-match-insights-provider-tvvxwd.ecydgvn1')?.textContent.trim();
+      const shiftItems = document.querySelectorAll(
+        'div[aria-label="Shift and schedule"] ul.js-match-insights-provider-h884c4 li[data-testid="list-item"]'
+      );
+      shiftItems.forEach((item) => {
+        const shift = item
+          .querySelector(
+            'div[data-testid$="-tile"] .js-match-insights-provider-tvvxwd.ecydgvn1'
+          )
+          ?.textContent.trim();
         if (shift) {
           details.shifts.push(shift);
         }
@@ -67,14 +93,14 @@ const extractJobDetails = async (page) => {
       // Clean company URL
       function cleanIndeedCompanyUrl(url, paramsToRemove = []) {
         try {
-          if (typeof url !== 'string') {
+          if (typeof url !== "string") {
             throw new Error("The URL must be a string.");
           }
           let urlObj = new URL(url);
           if (paramsToRemove.length === 0) {
-            urlObj.search = ''; // Clear all query parameters
+            urlObj.search = ""; // Clear all query parameters
           } else {
-            paramsToRemove.forEach(param => {
+            paramsToRemove.forEach((param) => {
               if (urlObj.searchParams.has(param)) {
                 urlObj.searchParams.delete(param);
               }
@@ -100,8 +126,8 @@ const extractJobDetails = async (page) => {
         description: description,
         salary: salary,
         shift: details.shifts,
-        createdAt:Date.now(),
-        updatedAt:Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
     });
   } catch (error) {
@@ -120,13 +146,16 @@ const indeedScraper = async (jobQuery) => {
 
   const page = await browser.newPage();
   // await page.setUserAgent(userAgent.random().toString())
-  await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36")
+  await page.setUserAgent(
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36"
+  );
   await page.setViewport({ width: 1920, height: 1080 });
 
   try {
-    console.log(`Starting Indeed scraper for role: ${jobQuery.role}, location: ${jobQuery.location}`);
+    console.log(
+      `Starting Indeed scraper for role: ${jobQuery.role}, location: ${jobQuery.location}`
+    );
     await navigateToJobsPage(page, jobQuery);
-    await page.screenshot({ path: 'example.png' });
     await delay(5000);
 
     const jobLinks = await extractJobLinks(page);
@@ -140,12 +169,14 @@ const indeedScraper = async (jobQuery) => {
       const jobData = await extractJobDetails(page);
       if (jobData) {
         console.log(`Extracted job details for: ${jobData.applyLink}`);
-        await getDB().collection("Jobs").insertOne({...jobData,slug:await generateSlug(jobData.title)});
+        await getDB()
+          .collection("Jobs")
+          .insertOne({ ...jobData, slug: await generateSlug(jobData.title) });
       }
     }
 
     console.log("All job data extracted successfully.");
-    return true
+    return true;
   } catch (error) {
     console.error("Error:", error);
   } finally {

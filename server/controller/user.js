@@ -159,6 +159,57 @@ const loginUser = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const content = req.body;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ error: true, message: "User ID is required" });
+    }
+
+    await getDB().collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users).updateOne(
+      { id: userId }, // Filter by userId
+      { $set: content } // Update only the specified fields
+    );
+
+    res
+      .status(200)
+      .json({ error: false, message: "Profile updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: true, message: error.message });
+  }
+};
+
+const viewSavedJobs = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const jobs = [];
+    const user = await getDB()
+      .collection(DATABASE.JOB_PORTAL.COLLECTIONS.Users)
+      .findOne({ id: userId });
+    const savedJobs = await user.savedJobs;
+    if (savedJobs.length > 0) {
+      for (let slug of savedJobs) {
+        const job = await getDB()
+          .collection(DATABASE.JOB_PORTAL.COLLECTIONS.JOBS)
+          .findOne({ slug });
+        if (job) {
+          jobs.push(job);
+        }
+      }
+
+      res.status(200).json({ jobs });
+    } else {
+      res.status(200).json({ message: "0 jobs saved" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: true, message: "Internal server error." });
+  }
+};
+
 const saveJob = async (req, res) => {
   try {
     const { jobId } = req.body;
@@ -188,7 +239,7 @@ const saveJob = async (req, res) => {
     res.status(200).json({ message: "Job saved successfully." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).json({ error: true, message: "Internal server error." });
   }
 };
 
@@ -216,6 +267,8 @@ module.exports = {
   loginUser,
   verifyOTP,
   saveJob,
+  updateProfile,
   resendOTP,
   contactUs,
+  viewSavedJobs,
 };

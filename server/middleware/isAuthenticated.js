@@ -18,7 +18,7 @@ const isAuthenticated = (req, res, next) => {
       if (err) {
         return res
           .status(401)
-          .json({ message: "Failed to authenticate token." });
+          .json({ error: true, message: "Failed to authenticate token." });
       }
 
       // If the token is valid, store the decoded user ID in the request object

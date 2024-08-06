@@ -48,6 +48,8 @@ const createUser = async (user) => {
       ...user,
       password: hashedPassword,
       savedJobs: [],
+      skills: [],
+      exp: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };

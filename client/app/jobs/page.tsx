@@ -6,6 +6,7 @@ import axiosInstance from "@/lib/axiosInstance";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { JobPost } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface JobSearch {
   role: string;
@@ -85,7 +86,14 @@ const JobsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="text-center">Loading...</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Skeleton className="max-w-md h-[10rem]" />
+          <Skeleton className="max-w-md h-[10rem]" />
+          <Skeleton className="max-w-md h-[10rem]" />
+          <Skeleton className="max-w-md h-[10rem]" />
+          <Skeleton className="max-w-md h-[10rem]" />
+          <Skeleton className="max-w-md h-[10rem]" />
+        </div>
       ) : (
         <div>
           {jobData && jobData.jobs.length > 0 ? (

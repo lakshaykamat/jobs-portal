@@ -13,10 +13,11 @@ const axiosInstance: AxiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Retrieve the token from localStorage or any other secure storage
-    const token = localStorage.getItem("authToken");
+    //@ts-ignore
+    const token = JSON.parse(localStorage.getItem("user"));
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token.token}`;
     }
 
     return config;

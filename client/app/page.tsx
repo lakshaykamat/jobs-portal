@@ -5,16 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import axiosInstance from "@/lib/axiosInstance";
 import { JobPost } from "@/types";
-import { Quote, QuoteIcon, Search, TextQuote } from "lucide-react";
+import { Quote, Search, TextQuote } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/use-toast";
 import React, { useState } from "react";
 import useSWR from "swr";
 const fetcher = (url: string) => axiosInstance.get(url).then((res) => res.data);
 const HomePage = () => {
+  const { toast } = useToast();
   const [jobQuery, setJobQuery] = useState({
     role: "",
     location: "",
     query: "/jobs?",
+  });
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: "",
   });
   const { data, isLoading, error } = useSWR("/api/v1/jobs?limit=3", fetcher);
 
@@ -29,6 +36,34 @@ const HomePage = () => {
         query += `location=${encodeURIComponent(updatedState.location)}&`;
       return { ...updatedState, query: query.slice(0, -1) }; // Remove trailing "&"
     });
+  };
+
+  const handleContactChange = async (e: any) => {
+    setContactForm((prev) => {
+      return {
+        ...prev,
+        [e.target.name]: e.target.value,
+      };
+    });
+  };
+
+  const submitQuery = async (e: any) => {
+    try {
+      e.preventDefault();
+      const response = await axiosInstance.post("/api/v1/users/contact", {
+        name: contactForm.name,
+        email: contactForm.email,
+        message: contactForm.message,
+      });
+      setContactForm(() => {
+        return { name: "", email: "", message: "" };
+      });
+      toast({
+        description: "Thanks for contacting :)",
+      });
+    } catch (error) {
+      alert("Failed to submit query");
+    }
   };
 
   return (
@@ -1050,8 +1085,11 @@ const HomePage = () => {
       <div className="my-24">
         <h2 className="text-3xl font-bold mb-4">Featured Jobs</h2>
 
-        <div className="grid grid-cols-3 justify-center gap-8">
-          {data && data.jobs.map((item: JobPost) => <JobPostCard job={item} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-3 justify-center gap-8">
+          {data &&
+            data.jobs.map((item: JobPost) => (
+              <JobPostCard key={item.slug} job={item} />
+            ))}
         </div>
       </div>
 
@@ -1084,10 +1122,27 @@ const HomePage = () => {
           We'd love to hear from you. Reach out to us with any questions or
           feedback.
         </p>
-        <form className="max-w-lg mx-auto flex flex-col gap-4">
-          <Input type="text" placeholder="Your Name" required />
-          <Input type="email" placeholder="Your Email" required />
+        <form
+          onSubmit={submitQuery}
+          className="max-w-lg mx-auto flex flex-col gap-4"
+        >
+          <Input
+            onChange={handleContactChange}
+            name="name"
+            type="text"
+            placeholder="Your Name"
+            required
+          />
+          <Input
+            onChange={handleContactChange}
+            name="email"
+            type="email"
+            placeholder="Your Email"
+            required
+          />
           <Textarea
+            onChange={handleContactChange}
+            name="message"
             className="form-textarea w-full rounded"
             rows={5}
             placeholder="Your Message"

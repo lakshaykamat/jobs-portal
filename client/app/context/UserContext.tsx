@@ -9,10 +9,18 @@ import React, {
 import axios from "axios";
 import axiosInstance from "@/lib/axiosInstance";
 
-interface User {
+type Exp = {
+  role: string;
+  date: string;
+  companyName: string;
+  bio: string;
+};
+export interface User {
   id: string;
   email: string;
   name: string;
+  skills: string[];
+  exp: Exp[];
   createdAt: string;
   updatedAt: string;
   savedJobs: string;
@@ -63,9 +71,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
       });
-      setUser(response.data);
-      // Store user data and token in local storage
-      localStorage.setItem("user", JSON.stringify(response.data));
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Registration failed");
     }

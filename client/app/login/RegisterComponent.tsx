@@ -42,6 +42,7 @@ const RegisterComponent = () => {
         description: "Password didn't match",
       });
       setErrorMessage("Password didn't match");
+      setLoading(false);
       return;
     }
 

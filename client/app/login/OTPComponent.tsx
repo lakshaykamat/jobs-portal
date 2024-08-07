@@ -86,7 +86,8 @@ const OTPComponent = ({ email }: { email: string }) => {
   };
 
   return (
-    <div
+    <form
+      onSubmit={verifyYourOTP}
       className={`${
         isLoading && "opacity-60"
       } text-center px-7 pt-5 pb-10 rounded items-center flex flex-col gap-10`}
@@ -123,10 +124,10 @@ const OTPComponent = ({ email }: { email: string }) => {
         )}
       </p>
       {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
-      <Button onClick={verifyYourOTP} className="w-full">
+      <Button type="submit" className="w-full">
         Verify OTP
       </Button>
-    </div>
+    </form>
   );
 };
 

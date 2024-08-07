@@ -1,12 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const {
-  createJob,
-  getJobs,
-  getLocations,
-} = require("../controller/jobs");
+const { createJob, getJobs, getLocations } = require("../controller/jobs");
+const isAuthenticated = require("../middleware/isAuthenticated");
 
-router.get("/", getJobs);
+router.get("/", isAuthenticated, getJobs);
 router.post("/", createJob);
 router.get("/locations", getLocations);
 

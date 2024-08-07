@@ -24,6 +24,7 @@ JobVault is a comprehensive job portal that offers a seamless experience for job
 
 <img src="images/login.png" alt="Login Page"/>
 <img src="images/otp.png" alt="OTP Page">
+<img src="images/email.png" alt="OTP Page">
 
 #### Architecture
 

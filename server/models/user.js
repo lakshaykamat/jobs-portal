@@ -48,6 +48,7 @@ const createUser = async (user) => {
       ...user,
       password: hashedPassword,
       savedJobs: [],
+      preferredRoles: [],
       skills: [],
       exp: [],
       createdAt: Date.now(),

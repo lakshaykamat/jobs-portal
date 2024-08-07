@@ -20,6 +20,8 @@ export interface User {
   email: string;
   name: string;
   skills: string[];
+  preferredLocations: string[];
+  preferredRoles: string[];
   exp: Exp[];
   createdAt: string;
   updatedAt: string;

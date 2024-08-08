@@ -7,6 +7,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { JobPost } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface JobSearch {
   role: string;
@@ -29,11 +38,12 @@ const JobsPage: React.FC = () => {
   });
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
-  const fetchJobs = async (role: string, location: string) => {
+  const fetchJobs = async (role: string, location: string, page: number) => {
     try {
       const response = await axiosInstance.get<JobData>(
-        `/api/v1/jobs?title=${role}&location=${location}`
+        `/api/v1/jobs?title=${role}&location=${location}&page=${page}`
       );
       setJobData(response.data);
       setLoading(false);
@@ -46,9 +56,11 @@ const JobsPage: React.FC = () => {
   useEffect(() => {
     const role = searchParams.get("role") || "";
     const location = searchParams.get("location") || "";
+    const page = parseInt(searchParams.get("page") || "1", 10);
 
     setJobSearch({ role, location });
-    fetchJobs(role, location);
+    setCurrentPage(page);
+    fetchJobs(role, location, page);
   }, [searchParams]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -60,8 +72,81 @@ const JobsPage: React.FC = () => {
     let query = "/jobs?";
     if (jobSearch.role) query += `role=${encodeURIComponent(jobSearch.role)}&`;
     if (jobSearch.location)
-      query += `location=${encodeURIComponent(jobSearch.location)}`;
+      query += `location=${encodeURIComponent(jobSearch.location)}&page=1`;
     router.replace(query);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    let query = `/jobs?role=${encodeURIComponent(
+      jobSearch.role
+    )}&location=${encodeURIComponent(jobSearch.location)}&page=${page}`;
+    router.replace(query);
+  };
+
+  const renderPaginationItems = () => {
+    if (!jobData) return null;
+
+    const { totalPages } = jobData;
+    const maxVisiblePages = 3; // Number of pages to show around the current page
+    const pageNumbers = [];
+
+    // Show first page
+    pageNumbers.push(1);
+
+    // Show ellipsis if currentPage is far from the first page
+    if (currentPage > 3) {
+      pageNumbers.push("ellipsis");
+    }
+
+    // Determine start and end page numbers to display
+    const startPage = Math.max(
+      2,
+      currentPage - Math.floor(maxVisiblePages / 2)
+    );
+    const endPage = Math.min(
+      totalPages - 1,
+      currentPage + Math.floor(maxVisiblePages / 2)
+    );
+
+    // Add pages around the current page
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    // Show ellipsis if currentPage is far from the last page
+    if (currentPage < totalPages - 2) {
+      pageNumbers.push("ellipsis");
+    }
+
+    // Show last page
+    if (totalPages > 1) {
+      pageNumbers.push(totalPages);
+    }
+
+    return pageNumbers.map((pageNumber, index) => {
+      if (pageNumber === "ellipsis") {
+        return (
+          <PaginationItem key={`ellipsis-${index}`}>
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      return (
+        <PaginationItem key={pageNumber}>
+          <PaginationLink
+            href="#"
+            //@ts-ignore
+            onClick={() => handlePageChange(pageNumber)}
+            //@ts-ignore
+            active={pageNumber === currentPage}
+          >
+            {pageNumber}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    });
   };
 
   return (
@@ -106,6 +191,26 @@ const JobsPage: React.FC = () => {
             <div className="text-center">No jobs found.</div>
           )}
         </div>
+      )}
+
+      {jobData && jobData.totalPages > 1 && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem disabled={currentPage === 1}>
+              <PaginationPrevious
+                href="#"
+                onClick={() => handlePageChange(currentPage - 1)}
+              />
+            </PaginationItem>
+            {renderPaginationItems()}
+            <PaginationItem disabled={currentPage == jobData.totalPages}>
+              <PaginationNext
+                href="#"
+                onClick={() => handlePageChange(currentPage + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );

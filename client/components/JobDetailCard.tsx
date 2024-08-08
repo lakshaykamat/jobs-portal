@@ -12,6 +12,19 @@ import {
 } from "lucide-react";
 import axiosInstance from "@/lib/axiosInstance";
 import { useToast } from "./ui/use-toast";
+import { useUser } from "@/app/context/UserContext";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface JobDetailCardProps {
   job: JobPost;
@@ -19,9 +32,10 @@ interface JobDetailCardProps {
 
 const JobDetailCard: React.FC<JobDetailCardProps> = ({ job }) => {
   const { toast } = useToast();
+  const { user } = useUser();
   const saveJob = async () => {
     try {
-      const response = await axiosInstance.post("/api/v1/users/savejob", {
+      await axiosInstance.post("/api/v1/users/savejob", {
         jobId: job.slug,
       });
       toast({
@@ -70,9 +84,35 @@ const JobDetailCard: React.FC<JobDetailCardProps> = ({ job }) => {
       <Link href={job.applyLink} target="_blank" rel="noopener noreferrer">
         <Button className="my-4 w-full">Apply</Button>
       </Link>
-      <Button className="mb-3 w-full" variant={"secondary"} onClick={saveJob}>
-        <Bookmark className="w-5 h-5 mr-2" /> Save
-      </Button>
+      {user ? (
+        <Button className="mb-3 w-full" variant={"secondary"} onClick={saveJob}>
+          <Bookmark className="w-5 h-5 mr-2" /> Save
+        </Button>
+      ) : (
+        <AlertDialog>
+          <AlertDialogTrigger className="w-full">
+            <Button className="mb-3 w-full" variant={"secondary"}>
+              <Bookmark className="w-5 h-5 mr-2" /> Save
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                You need to login to save job.
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Login or register to account
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction>
+                <a href={"/login"}>Login</a>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       <p className="text-lg mb-4 font-bold">Full Job Description</p>
       <p

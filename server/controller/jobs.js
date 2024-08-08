@@ -1,6 +1,8 @@
 const { getDB, DATABASE } = require("../config/db");
 const { ObjectId } = require("mongodb");
 const { saveJob } = require("../models/Job");
+const { saveToFile } = require("../lib/utils");
+
 const predefinedLocations = [
   "Mumbai",
   ,
@@ -87,12 +89,6 @@ exports.getJobs = async (req, res) => {
       DATABASE.JOB_PORTAL.COLLECTIONS.Users
     );
 
-    // Get user preferences
-    const user = await usersCollection.findOne(
-      { id: userId },
-      { projection: { skills: 1, preferredRoles: 1, preferredLocations: 1 } }
-    );
-
     if (slug) {
       const job = await jobsCollection.findOne(
         { slug: slug },
@@ -126,42 +122,49 @@ exports.getJobs = async (req, res) => {
       query.source = { $regex: source, $options: "i" };
     }
 
-    // Add user preferences to the query if the user is found
-    if (user) {
-      if (user.skills && user.skills.length > 0) {
-        // Match any of the required skills in job postings
-        query.skillsRequired = {
-          $elemMatch: {
-            $in: user.skills.map((skill) => new RegExp(skill, "i")),
-          },
-        };
-      }
+    // Get user preferences only if userId is present
+    if (userId) {
+      const user = await usersCollection.findOne(
+        { id: userId },
+        { projection: { skills: 1, preferredRoles: 1, preferredLocations: 1 } }
+      );
 
-      if (user.preferredRoles && user.preferredRoles.length > 0) {
-        // Match any of the preferred roles in title or description
-        const roleRegexes = user.preferredRoles.map(
-          (role) => new RegExp(role, "i")
-        );
-        if (query.$or) {
-          query.$or.push({
-            $or: [
+      if (user) {
+        if (user.skills && user.skills.length > 0) {
+          // Match any of the required skills in job postings
+          query.skillsRequired = {
+            $elemMatch: {
+              $in: user.skills.map((skill) => new RegExp(skill, "i")),
+            },
+          };
+        }
+
+        if (user.preferredRoles && user.preferredRoles.length > 0) {
+          // Match any of the preferred roles in title or description
+          const roleRegexes = user.preferredRoles.map(
+            (role) => new RegExp(role, "i")
+          );
+          if (query.$or) {
+            query.$or.push({
+              $or: [
+                { title: { $in: roleRegexes } },
+                { description: { $in: roleRegexes } },
+              ],
+            });
+          } else {
+            query.$or = [
               { title: { $in: roleRegexes } },
               { description: { $in: roleRegexes } },
-            ],
-          });
-        } else {
-          query.$or = [
-            { title: { $in: roleRegexes } },
-            { description: { $in: roleRegexes } },
-          ];
+            ];
+          }
         }
-      }
 
-      if (user.preferredLocations && user.preferredLocations.length > 0) {
-        // Match any of the preferred locations in job postings
-        query["company.location"] = {
-          $in: user.preferredLocations.map((loc) => new RegExp(loc, "i")),
-        };
+        if (user.preferredLocations && user.preferredLocations.length > 0) {
+          // Match any of the preferred locations in job postings
+          query["company.location"] = {
+            $in: user.preferredLocations.map((loc) => new RegExp(loc, "i")),
+          };
+        }
       }
     }
 

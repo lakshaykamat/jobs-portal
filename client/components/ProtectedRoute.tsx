@@ -3,7 +3,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/app/context/UserContext";
 
-const withAuth = (WrappedComponent: React.FC) => {
+const WithAuth = (WrappedComponent: React.FC) => {
   return (props: any) => {
     const { user, loading } = useUser();
     const router = useRouter();
@@ -19,4 +19,4 @@ const withAuth = (WrappedComponent: React.FC) => {
   };
 };
 
-export default withAuth;
+export default WithAuth;
